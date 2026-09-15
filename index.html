@@ -2117,7 +2117,7 @@ var rough=function(){"use strict";function t(t,e,s){if(t&&t.length){const[n,o]=e
 </script>
 <script>
 (function(){
-  var foto = document.querySelectorAll(".fotoblocco img, .fotonuda img");
+  var foto = [].filter.call(document.querySelectorAll("img"), function (im) { var s = im.getAttribute("src") || ""; return !/^logo/i.test(im.getAttribute("alt") || "") && im.getAttribute("data-lente") !== "no" && !im.closest(".video-anteprima"); });
   if (!foto.length) return;
   var velo = document.createElement("div");
   velo.id = "velofoto";
@@ -2142,11 +2142,28 @@ var rough=function(){"use strict";function t(t,e,s){if(t&&t.length){const[n,o]=e
     velo.classList.add("on");
     document.documentElement.style.overflow = "hidden";
   }
-  for (var i = 0; i < foto.length; i++) {
-    (function(img){
-      img.addEventListener("click", function(){ apri(img); });
-    })(foto[i]);
+  /* Un ascoltatore SOLO, sulla FINESTRA e in cattura (16/09/2026): parte prima di quello delle
+     grafiche e vale anche per le foto che un altro copione ricostruisce dopo il caricamento.
+     Apre la foto cliccata, oppure quella della lentina cliccata (mai il disegnino del «+»). */
+  function apribile(im) {
+    if (!im || im.tagName !== "IMG") return false;
+    var s = im.getAttribute("src") || "";
+    return !/^logo/i.test(im.getAttribute("alt") || "") && im.getAttribute("data-lente") !== "no" && !im.closest("#velofoto")
+      && !im.closest("#velografica") && !im.closest(".video-anteprima");
   }
+  window.addEventListener("click", function (ev) {
+    var t = ev.target;
+    if (!t || !t.closest) return;
+    var im = null, b = t.closest(".lente");
+    if (b) {
+      var z = b.parentElement;
+      var g = z && [].filter.call(z.querySelectorAll("svg[viewBox]"), function (x) { return !x.closest(".lente"); })[0];
+      if (!g) im = z && z.querySelector("img");
+    } else if (t.tagName === "IMG") im = t;
+    if (!apribile(im)) return;
+    ev.preventDefault(); ev.stopPropagation();
+    apri(im);
+  }, true);
   chiudiB.addEventListener("click", chiudi);
   velo.addEventListener("click", function(ev){
     if (ev.target === velo) chiudi();
@@ -2263,7 +2280,7 @@ var rough=function(){"use strict";function t(t,e,s){if(t&&t.length){const[n,o]=e
   document.addEventListener("click", function (ev) {
     var b = ev.target.closest ? ev.target.closest(".lente") : null;
     if (b) {
-      var svg = b.parentElement && b.parentElement.querySelector("svg[viewBox]");
+      var svg = b.parentElement && [].filter.call(b.parentElement.querySelectorAll("svg[viewBox]"), function (x) { return !x.closest(".lente"); })[0];  /* mai il «+» della lentina */
       if (svg) { ev.preventDefault(); ev.stopPropagation(); apri(svg); }
       return;
     }
